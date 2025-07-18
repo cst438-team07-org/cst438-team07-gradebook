@@ -73,9 +73,6 @@ public class EnrollmentController {
 
         }
         return result;
-
-
-
     }
 
     // instructor updates enrollment grades
