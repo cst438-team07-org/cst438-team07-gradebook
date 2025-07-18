@@ -38,12 +38,44 @@ public class EnrollmentController {
             @PathVariable("sectionNo") int sectionNo, Principal principal ) {
 				
 		// check that the sectionNo belongs to the logged in instructor.
-		
+		Section section = sectionRepository.findById(sectionNo).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Section not found"));
+
+        if (! section.getInstructorEmail().equals(principal.getName())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized to view this section");
+        }
 		// use the EnrollmentRepository findEnrollmentsBySectionNoOrderByStudentName
 		// to get a list of Enrollments for the given sectionNo.
 		// Return a list of EnrollmentDTOs
+        
+        //Fetch enrollments for the section
+        List<Enrollment> enrollments = enrollmentRepository.findEnrollmentsBySectionNoOrderByStudentName(sectionNo);
 
-        return null;
+        List<EnrollmentDTO> result = new ArrayList<>();
+        for (Enrollment e : enrollments) {
+            result.add(new EnrollmentDTO(
+                e.getEnrollmentId(),
+                e.getGrade(),
+                e.getStudent().getId(),
+                e.getStudent().getName(),
+                e.getStudent().getEmail(),
+                e.getSection().getCourse().getCourseId(),
+                e.getSection().getCourse().getTitle(),
+                e.getSection().getSectionId(),
+                e.getSection().getSectionNo(),
+                e.getSection().getBuilding(),
+                e.getSection().getRoom(),
+                e.getSection().getTimes(),
+                e.getSection().getCourse().getCredits(),
+                e.getSection().getTerm().getYear(),
+                e.getSection().getTerm().getSemester()
+            ));
+
+        }
+        return result;
+
+
+
     }
 
     // instructor updates enrollment grades
