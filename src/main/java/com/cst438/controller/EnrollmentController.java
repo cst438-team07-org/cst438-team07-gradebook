@@ -83,6 +83,22 @@ public class EnrollmentController {
         //    check that logged in user is instructor for the section
         //    update the enrollment grade
         //    send message to Registrar service for grade update
-       
+       for (EnrollmentDTO dto : dtoList) {
+            Section section = sectionRepository.findById(dto.getSectionNo()).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Section not found"));
+
+            if (!section.getInstructorEmail().equals(principal.getName())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized for this section");
+            }
+
+            Enrollment enrollment = enrollmentRepository.findById(dto.getEnrollmentId()).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.NOT_FOUND, "Enrollment not found"));
+
+            enrollment.setGrade(dto.getGrade());
+            enrollmentRepository.save(enrollment);
+
+            // Notify Registrar service about the grade update
+            registrar.updateGrade(enrollment.getStudent().getId(), section.getCourse().getCourseId(), dto.getGrade());
+        }
     }
 }
