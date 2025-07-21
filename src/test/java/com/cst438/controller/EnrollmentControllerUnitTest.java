@@ -47,23 +47,71 @@ class EnrollmentControllerTest {
     int sectionNo = 100;
     String instructorEmail = "prof@school.edu";
 
-    // stub section lookup
-    Section section = new Section();
-    section.setInstructorEmail(instructorEmail);
-    when(sectionRepository.findById(sectionNo)).thenReturn(Optional.of(section));
+    // 1) mock and stub Section
+    Section sec = mock(Section.class);
+    when(sec.getInstructorEmail()).thenReturn(instructorEmail);
+    when(sec.getSectionNo()).thenReturn(sectionNo);
+    when(sec.getSectionId()).thenReturn(42);
+    when(sec.getBuilding()).thenReturn("Bldg");
+    when(sec.getRoom()).thenReturn("101");
+    when(sec.getTimes()).thenReturn("MWF 9-10");
+
+    Course course = new Course();
+    course.setCourseId("CS101");
+    course.setTitle("Intro");
+    course.setCredits(3);
+    when(sec.getCourse()).thenReturn(course);
+
+    Term term = new Term();
+    term.setYear(2025);
+    term.setSemester("Spring");
+    when(sec.getTerm()).thenReturn(term);
+
+    when(sectionRepository.findById(sectionNo))
+        .thenReturn(Optional.of(sec));
     when(principal.getName()).thenReturn(instructorEmail);
 
-    // stub enrollments
+    // 2) mock and stub Enrollment
     Enrollment e = mock(Enrollment.class);
-    when(enrollmentRepository.findEnrollmentsBySectionNoOrderByStudentName(sectionNo))
-        .thenReturn(Collections.singletonList(e));
+    when(e.getEnrollmentId()).thenReturn(99);
+    when(e.getGrade()).thenReturn("A");
+    User stu = new User();
+    stu.setId(7);
+    stu.setName("Jane Doe");
+    stu.setEmail("jane@school.edu");
+    when(e.getStudent()).thenReturn(stu);
+    when(e.getSection()).thenReturn(sec);
 
+    when(enrollmentRepository.findEnrollmentsBySectionNoOrderByStudentName(sectionNo))
+        .thenReturn(List.of(e));
+
+    // 3) call controller
     List<EnrollmentDTO> dtos = controller.getEnrollments(sectionNo, principal);
 
+    // 4) assertions
+    assertNotNull(dtos);
     assertEquals(1, dtos.size());
-    verify(enrollmentRepository).findEnrollmentsBySectionNoOrderByStudentName(sectionNo);
+    EnrollmentDTO dto = dtos.get(0);
+    assertEquals(99, dto.enrollmentId());
+    assertEquals("A", dto.grade());
+    assertEquals(7, dto.studentId());
+    assertEquals("Jane Doe", dto.name());
+    assertEquals("CS101", dto.courseId());
+    assertEquals("Intro", dto.title());
+    assertEquals(3, dto.credits());
+    assertEquals(42, dto.sectionId());
+    assertEquals(sectionNo, dto.sectionNo());
+    assertEquals("Bldg", dto.building());
+    assertEquals("101", dto.room());
+    assertEquals("MWF 9-10", dto.times());
+    assertEquals(2025, dto.year());
+    assertEquals("Spring", dto.semester());
+
+    verify(enrollmentRepository)
+        .findEnrollmentsBySectionNoOrderByStudentName(sectionNo);
     verifyNoInteractions(registrar);
   }
+
 
   @Test
   void getEnrollments_sectionNotFound_throws404() {
