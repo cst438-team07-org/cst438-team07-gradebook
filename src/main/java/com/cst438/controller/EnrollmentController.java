@@ -4,6 +4,7 @@ import com.cst438.domain.*;
 import com.cst438.dto.EnrollmentDTO;
 import com.cst438.service.RegistrarServiceProxy;
 import jakarta.validation.Valid;
+import java.util.ArrayList;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -84,21 +85,21 @@ public class EnrollmentController {
         //    update the enrollment grade
         //    send message to Registrar service for grade update
        for (EnrollmentDTO dto : dtoList) {
-            Section section = sectionRepository.findById(dto.getSectionNo()).orElseThrow(() ->
+            Section section = sectionRepository.findById(dto.sectionNo()).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Section not found"));
 
             if (!section.getInstructorEmail().equals(principal.getName())) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized for this section");
             }
 
-            Enrollment enrollment = enrollmentRepository.findById(dto.getEnrollmentId()).orElseThrow(() ->
+            Enrollment enrollment = enrollmentRepository.findById(dto.enrollmentId()).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Enrollment not found"));
 
-            enrollment.setGrade(dto.getGrade());
+            enrollment.setGrade(dto.grade());
             enrollmentRepository.save(enrollment);
 
             // Notify Registrar service about the grade update
-            registrar.updateGrade(enrollment.getStudent().getId(), section.getCourse().getCourseId(), dto.getGrade());
+            registrar.sendMessage("updateEnrollment", dto);
         }
     }
 }
