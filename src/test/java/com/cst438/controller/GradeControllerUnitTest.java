@@ -2,6 +2,7 @@ package com.cst438.controller;
 
 import com.cst438.domain.*;
 import com.cst438.dto.GradeDTO;
+import com.cst438.dto.LoginDTO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -54,7 +55,7 @@ public class GradeControllerUnitTest {
         GradeDTO firstGrade = grades[0];
         assertNotNull(firstGrade.studentEmail());
         assertNotNull(firstGrade.studentName());
-        assertEquals(assignmentId, firstGrade.assignmentId());
+        assertEquals(assignmentId, firstGrade.gradeId());
     }
 
     @Test
@@ -104,7 +105,7 @@ public class GradeControllerUnitTest {
                 "Assignment Title",  // assignmentTitle
                 "cst363",            // courseId
                 1,                   // sectionId
-                95.0                 // score to update
+                95                 // score to update
         );
 
         // Send PUT request to update the grade score
@@ -138,7 +139,7 @@ public class GradeControllerUnitTest {
                 "Assignment Title",
                 "cst363",
                 1,
-                80.0
+                80
         );
 
         // This user should NOT be authorized to update the grade
