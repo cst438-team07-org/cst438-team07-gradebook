@@ -3,7 +3,9 @@ package com.cst438.controller;
 import com.cst438.domain.*;
 import com.cst438.dto.GradeDTO;
 import jakarta.validation.Valid;
+import java.util.Collections;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -27,11 +29,11 @@ public class GradeController {
     @PreAuthorize("hasAuthority('SCOPE_ROLE_INSTRUCTOR')")
     @GetMapping("/assignments/{assignmentId}/grades")
     public List<GradeDTO> getAssignmentGrades(@PathVariable("assignmentId") int assignmentId, Principal principal) {
-		// Check that the Section of the assignment belongs to the 
-		// logged in instructor 
+		// Check that the Section of the assignment belongs to the
+		// logged in instructor
         // return a list of GradeDTOs containing student scores for an assignment
-        // if a Grade entity does not exist, then create the Grade entity 
-		// with a null score and return the gradeId. 
+        // if a Grade entity does not exist, then create the Grade entity
+		// with a null score and return the gradeId.
         // Retrieve the assignment
         Assignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new ResponseStatusException(
@@ -81,10 +83,27 @@ public class GradeController {
 
     @PutMapping("/grades")
     @PreAuthorize("hasAuthority('SCOPE_ROLE_INSTRUCTOR')")
-    public void updateGrades(@Valid @RequestBody List<GradeDTO> dtoList, Principal principal) {
+    public ResponseEntity<?> updateGrades( @RequestBody List<GradeDTO> dtoList, Principal principal) {
 		// for each GradeDTO
 		// check that the logged in instructor is the owner of the section
         // update the assignment score
+
+        List<String> errors = new ArrayList<>();
+        for (int i = 0; i < dtoList.size(); i++) {
+            GradeDTO g = dtoList.get(i);
+            if (g.score() == null) {
+                errors.add("item " + i + ": score must not be null");
+            }
+            if (g.studentEmail() == null || !g.studentEmail().matches(".+@.+\\..+")) {
+                errors.add("item " + i + ": studentEmail must be a valid email");
+            }
+        }
+        if (!errors.isEmpty()) {
+            return ResponseEntity
+                .badRequest()
+                .body(Collections.singletonMap("errors", errors));
+        }
+
 
         String instructorEmail = principal.getName();
 
@@ -105,7 +124,6 @@ public class GradeController {
             grade.setScore(gradeDTO.score());
             gradeRepository.save(grade);
         }
-        
-        
+        return ResponseEntity.ok().build();
     }
 }
