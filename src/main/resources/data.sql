@@ -15,5 +15,32 @@ insert into course values
 ('cst489', 'Software Engineering', 4),
 ('cst499', 'Capstone', 4);
 
-insert into section (section_no, course_id, section_id, term_id, building, room, times, instructor_email) values
-(1, 'cst489', 1, 10, '90', 'B104', 'W F 10-11', 'ted@csumb.edu');
+-- 1) One section, taught by ted@csumb.edu, in term #10:
+insert into section
+(section_no, course_id, section_id, term_id, building, room, times, instructor_email)
+values
+    (1, 'cst363', 1, 10, 'B1', 'R1', 'TTh 9-10', 'ted@csumb.edu');
+
+-- 2) One assignment with ID=1 in that section:
+insert into assignment
+(assignment_id, section_no, title, due_date)
+values
+    (1, 1, 'Lab', '2025-09-15');
+
+-- 3) Create a “Bob” student (so GET /assignments/1/grades produces one record):
+insert into user_table
+(id, name,        email,             password,       type)
+values
+    (4, 'Bob', 'bob@csumb.edu', '$2a$10$dummy', 'STUDENT');
+
+-- 4) Enroll Bob in section 1:
+insert into enrollment
+(enrollment_id, grade, section_no, user_id)
+values
+    (1, null, 1, 4);
+
+-- 5) Pre–seed a Grade row with ID=1 (so PUT /grades with gradeId 1 will succeed):
+insert into grade
+(grade_id, enrollment_id, assignment_id, score)
+values
+    (1, 1, 1, 80);
