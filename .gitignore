@@ -3,3 +3,4 @@
 
 # Maven build output
 /target/
+/.idea/
