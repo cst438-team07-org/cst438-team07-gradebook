@@ -1,4 +1,4 @@
-package com.cst438.controller2;
+package com.cst438.controller;
 
 import com.cst438.domain.Assignment;
 import com.cst438.domain.AssignmentRepository;
