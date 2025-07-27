@@ -4,7 +4,6 @@ import com.cst438.domain.*;
 import com.cst438.dto.EnrollmentDTO;
 import com.cst438.service.RegistrarServiceProxy;
 import jakarta.validation.Valid;
-import java.util.ArrayList;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -37,24 +36,14 @@ public class EnrollmentController {
     @GetMapping("/sections/{sectionNo}/enrollments")
     public List<EnrollmentDTO> getEnrollments(
             @PathVariable("sectionNo") int sectionNo, Principal principal ) {
-				
-		// check that the sectionNo belongs to the logged in instructor.
-		Section section = sectionRepository.findById(sectionNo).orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.NOT_FOUND, "Section not found"));
 
-        if (! section.getInstructorEmail().equals(principal.getName())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized to view this section");
+        Section s = sectionRepository.findById(sectionNo).orElse(null);
+        if (s==null || ! s.getInstructorEmail().equals(principal.getName())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid section no");
         }
-		// use the EnrollmentRepository findEnrollmentsBySectionNoOrderByStudentName
-		// to get a list of Enrollments for the given sectionNo.
-		// Return a list of EnrollmentDTOs
-        
-        //Fetch enrollments for the section
-        List<Enrollment> enrollments = enrollmentRepository.findEnrollmentsBySectionNoOrderByStudentName(sectionNo);
-
-        List<EnrollmentDTO> result = new ArrayList<>();
-        for (Enrollment e : enrollments) {
-            result.add(new EnrollmentDTO(
+        List<Enrollment> enrollments = enrollmentRepository
+                .findEnrollmentsBySectionNoOrderByStudentName(sectionNo);
+        return enrollments.stream().map(e -> new EnrollmentDTO(
                 e.getEnrollmentId(),
                 e.getGrade(),
                 e.getStudent().getId(),
@@ -70,35 +59,23 @@ public class EnrollmentController {
                 e.getSection().getCourse().getCredits(),
                 e.getSection().getTerm().getYear(),
                 e.getSection().getTerm().getSemester()
-            ));
-
-        }
-        return result;
+        )).toList();
     }
 
     // instructor updates enrollment grades
     @PreAuthorize("hasAuthority('SCOPE_ROLE_INSTRUCTOR')")
     @PutMapping("/enrollments")
     public void updateEnrollmentGrade(@Valid @RequestBody List<EnrollmentDTO> dtoList, Principal principal) {
-		// for each EnrollmentDTO 
-        //    check that logged in user is instructor for the section
-        //    update the enrollment grade
-        //    send message to Registrar service for grade update
-       for (EnrollmentDTO dto : dtoList) {
-            Section section = sectionRepository.findById(dto.sectionNo()).orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.NOT_FOUND, "Section not found"));
-
-            if (!section.getInstructorEmail().equals(principal.getName())) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not authorized for this section");
+        // check that logged in user is instructor for the section
+        // update the enrollment grade
+        // send message to Registrar service for grade update
+        for (EnrollmentDTO dto : dtoList) {
+            Enrollment e = enrollmentRepository.findById(dto.enrollmentId()).orElse(null);
+            if (e==null || !e.getSection().getInstructorEmail().equals(principal.getName())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "invalid enrollment "+dto.enrollmentId());
             }
-
-            Enrollment enrollment = enrollmentRepository.findById(dto.enrollmentId()).orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.NOT_FOUND, "Enrollment not found"));
-
-            enrollment.setGrade(dto.grade());
-            enrollmentRepository.save(enrollment);
-
-            // Notify Registrar service about the grade update
+            e.setGrade(dto.grade());
+            enrollmentRepository.save(e);
             registrar.sendMessage("updateEnrollment", dto);
         }
     }
